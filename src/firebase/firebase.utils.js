@@ -20,7 +20,20 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
 
   const userRef = firestore.doc(`users/${userAuth.uid}`);
 
+  const myCollectionRef = firestore.collection("/users");
+  console.log("collectionReference", myCollectionRef);
+
   const snapShot = await userRef.get();
+  const myCollectionSnapshot = await myCollectionRef.get();
+
+  console.log("collection1", {
+    collection: myCollectionSnapshot.docs.map((doc) => doc.data()),
+  });
+
+  console.log(
+    "collection2",
+    myCollectionSnapshot.docs.map((doc) => doc.data())
+  );
 
   if (!snapShot.exists) {
     const { displayName, email } = userAuth;
@@ -38,6 +51,42 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
   }
 
   return userRef;
+};
+
+export const convertCollectionsSnapshotToMap = (collections) => {
+  const transformedCollection = collections.docs.map((doc) => {
+    const { title, items } = doc.data();
+
+    return {
+      routeName: encodeURI(title.toLowerCase()),
+      id: doc.id,
+      title,
+      items,
+    };
+  });
+
+  const transformedCollection1 = transformedCollection.reduce((a, i) => {
+    //console.log(i.title.toLowerCase());
+    a[i.title.toLowerCase()] = i;
+    return a;
+  }, {});
+
+  return transformedCollection1;
+};
+
+export const addCollectionAndDocuments = async (
+  collectionKey,
+  objectsToAdd
+) => {
+  const collectionRef = firestore.collection(collectionKey);
+  const myBatch = firestore.batch();
+
+  objectsToAdd.sort().forEach((o) => {
+    const documentReference = collectionRef.doc();
+    myBatch.set(documentReference, o);
+  });
+
+  return await myBatch.commit();
 };
 
 export const auth = firebase.auth();
